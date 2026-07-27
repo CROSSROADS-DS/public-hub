@@ -1,0 +1,21 @@
+version: 1
+
+project:
+  title: Data Science CROSSROADS
+  description: Interactive data science learning modules.
+  jupyter:
+    lite: true
+
+  toc:
+    - file: index.md
+    - title: Public Modules
+      children:
+        - pattern: "public_modules/**"
+
+site:
+  template: book-theme
+  title: Data Science CROSSROADS
+  options:
+    folders: true
+    logo: logo.png
+    logo_text: "Data Science: CROSSROADS"

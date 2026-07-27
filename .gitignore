@@ -1,0 +1,9 @@
+node_modules/
+.venv/
+_build/
+public_modules/
+.module-content/
+.ipynb_checkpoints/
+__pycache__/
+.jupyterlite.doit.db
+.DS_Store
