@@ -10,7 +10,7 @@ project:
     - file: index.md
     - title: Public Modules
       children:
-        - pattern: "public_modules/**"
+        - pattern: "public-modules/**"
 
 site:
   template: book-theme

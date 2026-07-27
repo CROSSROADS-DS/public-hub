@@ -1,7 +1,7 @@
 node_modules/
 .venv/
 _build/
-public_modules/
+public-modules/
 .module-content/
 .ipynb_checkpoints/
 __pycache__/

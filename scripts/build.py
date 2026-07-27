@@ -45,7 +45,7 @@ def main() -> None:
             "lite",
             "build",
             "--contents",
-            "public_modules",
+            "public-modules",
             "--output-dir",
             str(OUTPUT / "jupyterlite"),
         ]
