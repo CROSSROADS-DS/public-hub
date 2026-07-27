@@ -1,0 +1,148 @@
+name: Build and deploy MyST + JupyterLite
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+  workflow_dispatch:
+    inputs:
+      content_sha:
+        description: Commit SHA from CROSSROADS-DS/public-modules
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # MyST assets must include the GitHub Pages project path.
+  BASE_URL: /${{ github.event.repository.name }}
+
+  # JupyterLite is deployed inside the MyST output.
+  JUPYTERLITE_BASE_URL: /${{ github.event.repository.name }}/jupyterlite/
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out public-hub
+        uses: actions/checkout@v6
+
+      - name: Check out public modules
+        uses: actions/checkout@v6
+        with:
+          repository: CROSSROADS-DS/public-modules
+
+          # Use the exact content commit supplied by public-modules.
+          # For normal pushes and pull requests in public-hub, use main.
+          ref: ${{ github.event.inputs.content_sha || 'main' }}
+
+          path: _content_repository
+
+          # Only download the content directory.
+          sparse-checkout: public_modules
+          sparse-checkout-cone-mode: true
+
+          # The secondary repository is public, so no PAT is required.
+          persist-credentials: false
+
+      - name: Synchronize public modules
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE="_content_repository/public_modules"
+          DESTINATION="public_modules"
+
+          if [[ ! -d "$SOURCE" ]]; then
+            echo "::error title=Missing content directory::The public-modules repository does not contain public_modules/ at the requested revision."
+            exit 1
+          fi
+
+          rm -rf "$DESTINATION"
+          cp -a "$SOURCE" "$DESTINATION"
+
+          echo "Using public-modules revision:"
+          git -C _content_repository rev-parse HEAD
+
+          echo "Synchronized module files:"
+          find "$DESTINATION" -type f | sort | head -100
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install MyST dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+
+      - name: Install JupyterLite dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Build MyST and JupyterLite
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+
+      - name: Verify generated site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f _build/html/index.html
+          test -f _build/html/jupyterlite/lab/index.html
+          test -f _build/html/jupyterlite/api/contents/all.json
+
+          echo "MyST and JupyterLite outputs were generated successfully."
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _build/html
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy site
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
