@@ -18,20 +18,24 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: pages-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  # MyST assets must include the GitHub Pages project path.
+  # public-hub is a GitHub Pages project site:
+  # https://crossroads-ds.github.io/public-hub/
   BASE_URL: /${{ github.event.repository.name }}
 
-  # JupyterLite is deployed inside the MyST output.
+  # JupyterLite is published inside the MyST site.
   JUPYTERLITE_BASE_URL: /${{ github.event.repository.name }}/jupyterlite/
 
 jobs:
   build:
     name: Build site
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Check out public-hub
@@ -42,76 +46,66 @@ jobs:
         with:
           repository: CROSSROADS-DS/public-modules
 
-          # When triggered by public-modules, use the exact commit that
-          # caused the rebuild. For normal public-hub runs, use main.
-          ref: ${{ github.event.inputs.content_sha || 'main' }}
+          # When public-modules triggers this workflow, use the exact
+          # content commit supplied in content_sha.
+          #
+          # For pushes, pull requests, and manual runs without a SHA,
+          # use the main branch of public-modules.
+          ref: ${{ inputs.content_sha || 'main' }}
 
-          # Download the content repository into a temporary directory.
-          path: _content_repository
+          # Creates public-hub/public-modules on the workflow runner.
+          path: public-modules
 
-          # The repository is public, so no separate PAT is required.
+          # public-modules is public, so no PAT is required for checkout.
           persist-credentials: false
 
-      - name: Copy module folders into public_modules
+      - name: Verify public-modules checkout
         shell: bash
         run: |
           set -euo pipefail
 
-          SOURCE="_content_repository"
-          DESTINATION="public_modules"
-
-          if [[ ! -d "$SOURCE" ]]; then
+          if [[ ! -d "public-modules" ]]; then
             echo "::error title=Missing content repository::The public-modules repository was not downloaded."
             exit 1
           fi
 
-          rm -rf "$DESTINATION"
-          mkdir -p "$DESTINATION"
+          CONTENT_REVISION="$(git -C public-modules rev-parse HEAD)"
 
-          module_count=0
+          echo "Using public-modules revision:"
+          echo "$CONTENT_REVISION"
 
-          # Each top-level directory in public-modules represents one module.
-          # Exclude Git and GitHub repository metadata.
-          while IFS= read -r -d '' module_directory; do
-            module_name="$(basename "$module_directory")"
+          echo "Top-level content:"
+          find public-modules \
+            -mindepth 1 \
+            -maxdepth 1 \
+            -printf '%f\n' \
+            | sort
 
-            echo "Copying module: $module_name"
-            cp -a "$module_directory" "$DESTINATION/"
-
-            module_count=$((module_count + 1))
-          done < <(
-            find "$SOURCE" \
+          MODULE_COUNT="$(
+            find public-modules \
               -mindepth 1 \
               -maxdepth 1 \
               -type d \
               ! -name ".git" \
               ! -name ".github" \
-              -print0
-          )
+              | wc -l
+          )"
 
-          if [[ "$module_count" -eq 0 ]]; then
-            echo "::error title=No modules found::The public-modules repository does not contain any top-level module directories."
+          if [[ "$MODULE_COUNT" -eq 0 ]]; then
+            echo "::error title=No modules found::The public-modules repository does not contain any top-level module folders."
             exit 1
           fi
 
-          echo "Using public-modules revision:"
-          git -C "$SOURCE" rev-parse HEAD
+          echo "Found $MODULE_COUNT module folder(s)."
 
-          echo "Copied $module_count module folder(s) into $DESTINATION."
+          # Keep the learning content, but do not expose the content
+          # repository's Git metadata or GitHub workflow files.
+          rm -rf public-modules/.git
+          rm -rf public-modules/.github
 
-          echo "Module directories:"
-          find "$DESTINATION" \
-            -mindepth 1 \
-            -maxdepth 1 \
-            -type d \
-            -printf '%f\n' \
-            | sort
-
-          echo "Module files:"
-          find "$DESTINATION" \
-            -type f \
-            | sort \
-            | head -100
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -137,6 +131,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
@@ -151,9 +146,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          test -f _build/html/index.html
-          test -f _build/html/jupyterlite/lab/index.html
-          test -f _build/html/jupyterlite/api/contents/all.json
+          test -f "_build/html/index.html"
+          test -f "_build/html/jupyterlite/lab/index.html"
+          test -f "_build/html/jupyterlite/api/contents/all.json"
 
           echo "MyST and JupyterLite outputs were generated successfully."
 
