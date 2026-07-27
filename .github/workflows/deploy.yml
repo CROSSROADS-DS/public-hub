@@ -37,45 +37,81 @@ jobs:
       - name: Check out public-hub
         uses: actions/checkout@v6
 
-      - name: Check out public modules
+      - name: Check out public-modules
         uses: actions/checkout@v6
         with:
           repository: CROSSROADS-DS/public-modules
 
-          # Use the exact content commit supplied by public-modules.
-          # For normal pushes and pull requests in public-hub, use main.
+          # When triggered by public-modules, use the exact commit that
+          # caused the rebuild. For normal public-hub runs, use main.
           ref: ${{ github.event.inputs.content_sha || 'main' }}
 
+          # Download the content repository into a temporary directory.
           path: _content_repository
 
-          # Only download the content directory.
-          sparse-checkout: public_modules
-          sparse-checkout-cone-mode: true
-
-          # The secondary repository is public, so no PAT is required.
+          # The repository is public, so no separate PAT is required.
           persist-credentials: false
 
-      - name: Synchronize public modules
+      - name: Copy module folders into public_modules
         shell: bash
         run: |
           set -euo pipefail
 
-          SOURCE="_content_repository/public_modules"
+          SOURCE="_content_repository"
           DESTINATION="public_modules"
 
           if [[ ! -d "$SOURCE" ]]; then
-            echo "::error title=Missing content directory::The public-modules repository does not contain public_modules/ at the requested revision."
+            echo "::error title=Missing content repository::The public-modules repository was not downloaded."
             exit 1
           fi
 
           rm -rf "$DESTINATION"
-          cp -a "$SOURCE" "$DESTINATION"
+          mkdir -p "$DESTINATION"
+
+          module_count=0
+
+          # Each top-level directory in public-modules represents one module.
+          # Exclude Git and GitHub repository metadata.
+          while IFS= read -r -d '' module_directory; do
+            module_name="$(basename "$module_directory")"
+
+            echo "Copying module: $module_name"
+            cp -a "$module_directory" "$DESTINATION/"
+
+            module_count=$((module_count + 1))
+          done < <(
+            find "$SOURCE" \
+              -mindepth 1 \
+              -maxdepth 1 \
+              -type d \
+              ! -name ".git" \
+              ! -name ".github" \
+              -print0
+          )
+
+          if [[ "$module_count" -eq 0 ]]; then
+            echo "::error title=No modules found::The public-modules repository does not contain any top-level module directories."
+            exit 1
+          fi
 
           echo "Using public-modules revision:"
-          git -C _content_repository rev-parse HEAD
+          git -C "$SOURCE" rev-parse HEAD
 
-          echo "Synchronized module files:"
-          find "$DESTINATION" -type f | sort | head -100
+          echo "Copied $module_count module folder(s) into $DESTINATION."
+
+          echo "Module directories:"
+          find "$DESTINATION" \
+            -mindepth 1 \
+            -maxdepth 1 \
+            -type d \
+            -printf '%f\n' \
+            | sort
+
+          echo "Module files:"
+          find "$DESTINATION" \
+            -type f \
+            | sort \
+            | head -100
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
