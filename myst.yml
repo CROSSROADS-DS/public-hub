@@ -3,14 +3,21 @@ version: 1
 project:
   title: Data Science CROSSROADS
   description: Interactive data science learning modules.
+
   jupyter:
     lite: true
+
+  # Do not process standalone HTML files as MyST pages.
+  exclude:
+    - "public-modules/**/*.html"
+    - "public-modules/**/*.htm"
 
   toc:
     - file: index.md
     - title: Public Modules
       children:
-        - pattern: "public-modules/**"
+        - pattern: "public-modules/**/*.md"
+        - pattern: "public-modules/**/*.ipynb"
 
 site:
   template: book-theme

@@ -5,7 +5,7 @@
   "description": "Two-course MyST site with editable JupyterLite exercise notebooks.",
   "scripts": {
     "build": "python scripts/build.py",
-    "serve": "python -m http.server 8005 --directory _build/html",
+    "serve": "python -m http.server 8000 --directory _build/html",
     "dev": "npm run build && npm run serve",
     "myst:start": "myst start"
   },
