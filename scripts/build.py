@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+import generate_toc as gtoc
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,4 +60,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    print("Generating table of contents...")
+    gtoc.main()
     main()

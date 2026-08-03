@@ -1,28 +1,38 @@
 version: 1
-
 project:
   title: Data Science CROSSROADS
   description: Interactive data science learning modules.
-
   jupyter:
     lite: true
-
-  # Do not process standalone HTML files as MyST pages.
   exclude:
-    - "public-modules/**/*.html"
-    - "public-modules/**/*.htm"
-
+  - public-modules/**/*.html
+  - public-modules/**/*.htm
   toc:
-    - file: index.md
-    - title: Public Modules
-      children:
-        - pattern: "public-modules/**/*.md"
-        - pattern: "public-modules/**/*.ipynb"
-
+  - file: index.md
+  - title: Data Science
+    children:
+    - file: disciplines/data-science/ocean-science-research-analysis.md
+      title: Ocean Science Research Analysis
+  - title: Environmental Science
+    children:
+    - file: disciplines/environmental-science/ocean-science-research-analysis.md
+      title: Ocean Science Research Analysis
+  - title: Geography
+    children:
+    - file: disciplines/geography/capital-bikeshare-urban-mobility.md
+      title: Capital Bikeshare — Urban Mobility Across Space and Time
+  - title: Public Policy
+    children:
+    - file: disciplines/public-policy/ocean-science-research-analysis.md
+      title: Ocean Science Research Analysis
+  - title: Urban Studies
+    children:
+    - file: disciplines/urban-studies/capital-bikeshare-urban-mobility.md
+      title: Capital Bikeshare — Urban Mobility Across Space and Time
 site:
   template: book-theme
   title: Data Science CROSSROADS
   options:
     folders: true
     logo: logo.png
-    logo_text: "Data Science: CROSSROADS"
+    logo_text: 'Data Science: CROSSROADS'

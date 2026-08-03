@@ -1,4 +1,5 @@
 node_modules/
+disciplines/
 .venv/
 _build/
 public-modules/
