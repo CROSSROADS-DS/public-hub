@@ -1,0 +1,27 @@
+version: 1
+project:
+  toc:
+  - file: index.md
+  - title: Data Science
+    children:
+    - file: disciplines/data-science/ocean-science-research-analysis.md
+      title: Ocean Science Research Analysis
+  - title: Environmental Science
+    children:
+    - file: disciplines/environmental-science/ocean-science-research-analysis.md
+      title: Ocean Science Research Analysis
+  - title: Geography
+    children:
+    - file: disciplines/geography/capital-bikeshare-urban-mobility.md
+      title: Capital Bikeshare — Urban Mobility Across Space and Time
+  - title: Public Policy
+    children:
+    - file: disciplines/public-policy/ocean-science-research-analysis.md
+      title: Ocean Science Research Analysis
+  - title: Urban Studies
+    children:
+    - file: disciplines/urban-studies/capital-bikeshare-urban-mobility.md
+      title: Capital Bikeshare — Urban Mobility Across Space and Time
+  exclude:
+  - public-modules/**/*.html
+  - public-modules/**/*.htm

@@ -8,3 +8,4 @@ public-modules/
 __pycache__/
 .jupyterlite.doit.db
 .DS_Store
+faviconV2.ico
