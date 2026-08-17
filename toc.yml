@@ -6,22 +6,32 @@ project:
     children:
     - file: disciplines/data-science/ocean-science-research-analysis.md
       title: Ocean Science Research Analysis
+    - file: disciplines/data-science/ocean-science-research-analysis-activity.md
+      hidden: true
   - title: Environmental Science
     children:
     - file: disciplines/environmental-science/ocean-science-research-analysis.md
       title: Ocean Science Research Analysis
+    - file: disciplines/environmental-science/ocean-science-research-analysis-activity.md
+      hidden: true
   - title: Geography
     children:
     - file: disciplines/geography/capital-bikeshare-urban-mobility.md
       title: Capital Bikeshare — Urban Mobility Across Space and Time
+    - file: disciplines/geography/capital-bikeshare-urban-mobility-activity.md
+      hidden: true
   - title: Public Policy
     children:
     - file: disciplines/public-policy/ocean-science-research-analysis.md
       title: Ocean Science Research Analysis
+    - file: disciplines/public-policy/ocean-science-research-analysis-activity.md
+      hidden: true
   - title: Urban Studies
     children:
     - file: disciplines/urban-studies/capital-bikeshare-urban-mobility.md
       title: Capital Bikeshare — Urban Mobility Across Space and Time
+    - file: disciplines/urban-studies/capital-bikeshare-urban-mobility-activity.md
+      hidden: true
   exclude:
   - public-modules/**/*.html
   - public-modules/**/*.htm

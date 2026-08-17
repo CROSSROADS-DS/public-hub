@@ -372,7 +372,63 @@ def relative_posix_path(
     return Path(relative_path).as_posix()
 
 
-def render_discipline_module_page(
+def render_module_guide_page(
+    module: Module,
+    discipline: str,
+    output_path: Path,
+    ) -> list[str]:
+
+    include_module_guide_path = relative_posix_path(
+        module.guide_path,
+        output_path.parent,
+    )
+
+    #JupyterLite URL for opening the activity notebook in the browser always directs to index.html
+    #to open a specific notebook, the path to the notebook is appended to the URL as a query parameter
+    JupyterURL = 'https://crossroads-ds.github.io/public-hub/jupyterlite/lab/index.html?path='
+
+    return(
+            [
+                "```"
+                f"{{include}} {include_module_guide_path}",
+                "```",
+                "",
+                f"{{button}}`View Activity Guide </disciplines/{slugify(discipline)}/{module.slug}-activity.md>`",
+                f"{{button}}`Open Activity in JupyterLite <{JupyterURL}{module.slug}/activity_interactive_python.ipynb>`",
+                #f"{{button}}`Open Activity in Marimo <>`",
+            ]
+        )
+
+
+def render_activity_guide_page(
+    module: Module,
+    discipline: str,
+    output_path: Path,
+    ) -> list[str]:
+
+    include_activity_guide_path = relative_posix_path(
+        (module.guide_path.parent / Path("activity_guide.md")),
+        output_path.parent,
+    )
+
+    #JupyterLite URL for opening the activity notebook in the browser always directs to index.html
+    #to open a specific notebook, the path to the notebook is appended to the URL as a query parameter
+    JupyterURL = 'https://crossroads-ds.github.io/public-hub/jupyterlite/lab/index.html?path='
+
+    return(
+            [
+                "```"
+                f"{{include}} {include_activity_guide_path}",
+                "```",
+                "",
+                f"{{button}}`Back to Module Guide </disciplines/{slugify(discipline)}/{module.slug}.md>`",
+                f"{{button}}`Open Activity in JupyterLite <{JupyterURL}{module.slug}/activity_interactive_python.ipynb>`",
+                #f"{{button}}`Open Activity in Marimo <>`",
+            ]
+        )
+
+
+def render_page(
     module: Module,
     discipline: str,
     output_path: Path,
@@ -404,51 +460,63 @@ def render_discipline_module_page(
         "",
     ]
 
-    if module.guide_path.is_file():
-        include_guide_path = relative_posix_path(
-            module.guide_path,
-            output_path.parent,
-        )
-
-        discipline_blurb = module.guide_path.parent / Path(f'{slugify(discipline)}.md')
-        if discipline_blurb.is_file():
-            include_discipline_path = relative_posix_path(
-                discipline_blurb,
-                output_path.parent,
-            )
-            parts.extend(
-                        [
-                            "```"
-                            f"{{include}} {include_discipline_path}",
-                            "```",
-                            "",
-                        ]
-                    )
-        
-
-        parts.extend(
-            [
-                "```"
-                f"{{include}} {include_guide_path}",
-                "```",
-                "",
-            ]
-        )
-
+    
+    if output_path.name == f"{module.slug}.md":
+        filename = f"module_guide.md"
     else:
+        filename = f"activity_guide.md"
+
+
+    if not (module.guide_path.parent / Path(filename)).is_file():
+        #desired file does not exist, generate a fallback page, this should not happen if the module is valid
         parts.extend(
-            [
-                f"# {module.title}",
-                "",
-                f"**Primary discipline:** {discipline}",
-                "",
-                (
-                    "_The module guide could not be included because "
-                    f"`{module.guide_filename}` was not found._"
-                ),
-                "",
-            ]
-        )
+                    [
+                        f"# {module.title}",
+                        "",
+                        f"**Primary discipline:** {discipline}",
+                        "",
+                        (
+                            "_The file could not be included because "
+                            f"`{(module.guide_path.parent / Path(output_path.name))}` was not found._"
+                        ),
+                        "",
+                    ]
+                )
+    else:
+        #desired file exists
+        if filename == f"module_guide.md":
+            
+            #check for existence of discipline blurb file, this file is optionally defined per discipline by the module author
+            #searches for file:
+            #public-modules/<module_slug>/<discipline>.md
+            discipline_blurb = module.guide_path.parent / Path(f'{slugify(discipline)}.md')
+            if discipline_blurb.is_file():
+                include_discipline_path = relative_posix_path(
+                    discipline_blurb,
+                    output_path.parent,
+                )
+                parts.extend(
+                            [
+                                "```"
+                                f"{{include}} {include_discipline_path}",
+                                "```",
+                            ]
+                        )
+
+            parts.extend(render_module_guide_page(
+                            module=module,
+                            discipline=discipline,
+                            output_path=output_path,
+                        )
+            )
+        
+        elif filename == f"activity_guide.md":
+            parts.extend(render_activity_guide_page(
+                            module=module,
+                            discipline=discipline,
+                            output_path=output_path,
+                        )
+            )
 
     return "\n".join(parts)
 
@@ -513,34 +581,40 @@ def create_discipline_pages(
         )
 
         for module in discipline_modules:
-            output_path = (
+            
+            module_path = (
                 discipline_directory
                 / f"{module.slug}.md"
             )
-
-            content = render_discipline_module_page(
-                module=module,
-                discipline=discipline,
-                output_path=output_path,
+            activity_path = (
+                discipline_directory
+                / f"{module.slug}-activity.md"
             )
 
-            # Avoid changing the file timestamp when the generated
-            # content has not changed.
-            if output_path.is_file():
-                existing_content = output_path.read_text(
-                    encoding="utf-8"
+            for output_path in [module_path, activity_path]:
+                content = render_page(
+                    module=module,
+                    discipline=discipline,
+                    output_path=output_path,
                 )
 
-                if existing_content == content:
-                    generated_pages.append(output_path)
-                    continue
+                # Avoid changing the file timestamp when the generated
+                # content has not changed.
+                if output_path.is_file():
+                    existing_content = output_path.read_text(
+                        encoding="utf-8"
+                    )
 
-            output_path.write_text(
-                content,
-                encoding="utf-8",
-            )
+                    if existing_content == content:
+                        generated_pages.append(output_path)
+                        continue
 
-            generated_pages.append(output_path)
+                output_path.write_text(
+                    content,
+                    encoding="utf-8",
+                )
+
+                generated_pages.append(output_path)
 
     return generated_pages
 
@@ -562,8 +636,10 @@ def build_myst_toc(
 
           - title: Computer Science
             children:
-              - file: disciplines/computer-science/example.md
+              - file: disciplines/computer-science/module_guide.md
                 title: Example Module
+              - file: disciplines/computer-science/activity_guide.md
+                hidden: True
     """
 
     module_list = list(modules)
@@ -612,6 +688,11 @@ def build_myst_toc(
                 / discipline_slug
                 / f"{module.slug}.md"
             )
+            activity_path = (
+                disciplines_root
+                / discipline_slug
+                / f"{module.slug}-activity.md"
+            )
 
             children.append(
                 {
@@ -620,6 +701,15 @@ def build_myst_toc(
                         root,
                     ),
                     "title": module.title,
+                } 
+            )
+            children.append(
+                {
+                    "file": relative_posix_path(
+                        activity_path,
+                        root,
+                    ),
+                    "hidden": True,
                 }
             )
 
