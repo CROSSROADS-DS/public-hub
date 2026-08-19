@@ -382,6 +382,9 @@ def render_discipline_module_page(
 
     When module_guide.md exists, it is included in the generated page.
     Otherwise, the script creates a small fallback page.
+
+    If {discipline}.md exists, it is included before the module guide
+    for that discipline's module page.
     """
 
     frontmatter = yaml.safe_dump(
@@ -402,14 +405,31 @@ def render_discipline_module_page(
     ]
 
     if module.guide_path.is_file():
-        include_path = relative_posix_path(
+        include_guide_path = relative_posix_path(
             module.guide_path,
             output_path.parent,
         )
 
+        discipline_blurb = module.guide_path.parent / Path(f'{slugify(discipline)}.md')
+        if discipline_blurb.is_file():
+            include_discipline_path = relative_posix_path(
+                discipline_blurb,
+                output_path.parent,
+            )
+            parts.extend(
+                        [
+                            "```"
+                            f"{{include}} {include_discipline_path}",
+                            "```",
+                            "",
+                        ]
+                    )
+        
+
         parts.extend(
             [
-                f"```{{include}} {include_path}",
+                "```"
+                f"{{include}} {include_guide_path}",
                 "```",
                 "",
             ]
@@ -628,18 +648,16 @@ def ensure_list_contains(
 
 def write_myst_config(
     modules: Iterable[Module],
-    myst_config_path: str | Path = "myst.yml",
+    myst_config_path: str | Path = "toc.yml",
     *,
     disciplines_directory: str | Path = "disciplines",
     index_file: str | Path = "index.md",
 ) -> Path:
     """
-    Create or update myst.yml.
+    Create or update toc.yml.
 
     Existing project and site settings are retained. The project.toc field
     is regenerated from the loaded modules.
-
-    Missing baseline settings are added automatically.
     """
 
     config_path = Path(myst_config_path)
@@ -677,34 +695,34 @@ def write_myst_config(
         project = {}
         config["project"] = project
 
-    project.setdefault(
-        "title",
-        "Data Science CROSSROADS",
-    )
+    # project.setdefault(
+    #     "title",
+    #     "Data Science CROSSROADS",
+    # )
 
-    project.setdefault(
-        "description",
-        "Interactive data science learning modules.",
-    )
+    # project.setdefault(
+    #     "description",
+    #     "Interactive data science learning modules.",
+    # )
 
-    jupyter = project.get("jupyter")
+    # jupyter = project.get("jupyter")
 
-    if not isinstance(jupyter, dict):
-        jupyter = {}
-        project["jupyter"] = jupyter
+    # if not isinstance(jupyter, dict):
+    #     jupyter = {}
+    #     project["jupyter"] = jupyter
 
-    jupyter.setdefault("lite", True)
+    # jupyter.setdefault("lite", True)
 
-    exclude = project.get("exclude")
+    # exclude = project.get("exclude")
 
-    if not isinstance(exclude, list):
-        exclude = []
-        project["exclude"] = exclude
+    # if not isinstance(exclude, list):
+    #     exclude = []
+    #     project["exclude"] = exclude
 
-    ensure_list_contains(
-        exclude,
-        DEFAULT_EXCLUDES,
-    )
+    # ensure_list_contains(
+    #     exclude,
+    #     DEFAULT_EXCLUDES,
+    # )
 
     # Replace only the generated TOC.
     project["toc"] = build_myst_toc(
@@ -715,40 +733,40 @@ def write_myst_config(
     )
 
     # Site configuration
-    site = config.get("site")
+    # site = config.get("site")
 
-    if not isinstance(site, dict):
-        site = {}
-        config["site"] = site
+    # if not isinstance(site, dict):
+    #     site = {}
+    #     config["site"] = site
 
-    site.setdefault(
-        "template",
-        "book-theme",
-    )
+    # site.setdefault(
+    #     "template",
+    #     "book-theme",
+    # )
 
-    site.setdefault(
-        "title",
-        "Data Science CROSSROADS",
-    )
+    # site.setdefault(
+    #     "title",
+    #     "Data Science CROSSROADS",
+    # )
 
-    options = site.get("options")
+    # options = site.get("options")
 
-    if not isinstance(options, dict):
-        options = {}
-        site["options"] = options
+    # if not isinstance(options, dict):
+    #     options = {}
+    #     site["options"] = options
 
-    options.setdefault("folders", True)
-    options.setdefault("logo", "logo.png")
+    # options.setdefault("folders", True)
+    # options.setdefault("logo", "logo.png")
 
-    options.setdefault(
-        "logo_text",
-        "Data Science: CROSSROADS",
-    )
+    # options.setdefault(
+    #     "logo_text",
+    #     "Data Science: CROSSROADS",
+    # )
 
-    config_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    # config_path.parent.mkdir(
+    #     parents=True,
+    #     exist_ok=True,
+    # )
 
     config_path.write_text(
         yaml.safe_dump(
@@ -768,7 +786,7 @@ def generate_catalog(
     project_root: str | Path = ".",
     public_modules_directory: str | Path = "public-modules",
     disciplines_directory: str | Path = "disciplines",
-    myst_config: str | Path = "myst.yml",
+    myst_config: str | Path = "toc.yml",
     index_file: str | Path = "index.md",
     clean: bool = False,
     verbose: bool = True,
@@ -871,7 +889,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "--myst-config",
-        default="myst.yml",
+        default="toc.yml",
         help=(
             "MyST configuration file to create or update."
         ),
