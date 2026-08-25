@@ -385,7 +385,7 @@ def render_module_guide_page(
 
     #JupyterLite URL for opening the activity notebook in the browser always directs to index.html
     #to open a specific notebook, the path to the notebook is appended to the URL as a query parameter
-    JupyterURL = 'https://crossroads-ds.github.io/public-hub/jupyterlite/lab/index.html?path='
+    JupyterURL = 'https://crossroads-ds.github.io/module-hub/jupyterlite/lab/index.html?path='
 
     return(
             [
@@ -413,7 +413,7 @@ def render_activity_guide_page(
 
     #JupyterLite URL for opening the activity notebook in the browser always directs to index.html
     #to open a specific notebook, the path to the notebook is appended to the URL as a query parameter
-    JupyterURL = 'https://crossroads-ds.github.io/public-hub/jupyterlite/lab/index.html?path='
+    JupyterURL = 'https://crossroads-ds.github.io/module-hub/jupyterlite/lab/index.html?path='
 
     return(
             [
